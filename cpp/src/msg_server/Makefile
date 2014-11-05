@@ -1,5 +1,5 @@
 
-SERVER = login_server
+SERVER = msg_server
 
 
 OS_NAME = $(shell uname)
