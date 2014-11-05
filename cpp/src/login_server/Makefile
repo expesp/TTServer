@@ -1,23 +1,47 @@
-CC = g++
-
-INC = ../base
-OPT = -Wall -Wno-deprecated -g
-
-OBJS = LoginConn.o login_server.o ../base/libbase.a 
 
 SERVER = login_server
 
+
+OS_NAME = $(shell uname)
+LC_OS_NAME = $(shell echo $(OS_NAME) | tr '[A-Z]' '[a-z]')
+ifeq ($(LC_OS_NAME), darwin)
+LIBS += -lpthread
+else 
+LIBS += -lpthread -luuid
+endif
+
+LIBS += ../base/libbase.a
+
+COMMON_PATH := ../base
+SRCDIRS   := .
+CPPFLAGS  += -I $(COMMON_PATH)
+CPPFLAGS += -Wall -Wno-deprecated -g
+
+SRCEXTS   := .c .cpp
+CC      = g++
+SHELL   = /bin/sh
+SOURCES = $(foreach d,$(SRCDIRS),$(wildcard $(addprefix $(d)/*,$(SRCEXTS))))
+OBJS = $(foreach x,$(SRCEXTS),$(patsubst %$(x),./obj/%.o,$(filter %$(x),$(notdir $(SOURCES)))))
+
 all: $(SERVER)
 
+DEPS    = $(patsubst %.o,%.d,$(OBJS))
+
 $(SERVER): $(OBJS)
-	$(CC)  $(OPT) -o $@ $(OBJS) -lpthread 
+	$(CC)  $(CPPFLAGS) -o $@ $(OBJS) $(LIBS)
 
-LoginConn.o: LoginConn.cpp
-	$(CC) -I $(INC) $(OPT) -c -o $@ $<
-	
-login_server.o: login_server.cpp
-	$(CC) -I $(INC) $(OPT) -c -o $@ $<
+objs : $(OBJS)
+./obj/%.o : %.c
+	@echo "=================="
+	@echo "Compiling $<"
+	$(CC) -c $(CPPFLAGS) $(CFLAGS) $< -o $@
+./obj/%.o : %.cpp
+	@mkdir -p $(dir $@)
+	@echo "=================="
+	@echo "Compiling $<"
+	$(CC) -c $(CPPFLAGS)  $< -o $@
 
-clean:
-	rm -f $(SERVER) *.o
-
+.PHONY : clean
+clean: 
+	rm -f $(OBJS)
+	rm -f $(SERVER)
